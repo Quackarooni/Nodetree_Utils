@@ -22,7 +22,7 @@ bl_info = {
 }
 
 import bpy
-from bpy.props import EnumProperty
+from bpy.props import EnumProperty, StringProperty
 
 #adapted from https://github.com/valcohen/tidy_group_inputs/blob/master/vbc_tidy_group_inputs.py
 class NODEUTILS_PT_main_panel(bpy.types.Panel):
@@ -33,20 +33,24 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
     
     def draw(self, context):
         layout = self.layout
-        row = layout.row(align=True) 
-        row.operator('nd_utils.select_reroutes')
-        layout.separator()
+        layout.label(text="Select by Type (WIP):")
+        row = layout.box().row(align=True)
+        op_props = row.operator('nd_utils.select_reroutes', text='Nodes')
+        op_props = row.operator('nd_utils.select_reroutes', text='Reroutes')
+        op_props = row.operator('nd_utils.select_reroutes', text='Frame')
 
         layout.label(text="Normalize Node Width:")
-        box = layout.box()
-        op_props = box.row(align=True).operator('nd_utils.normalize_node_width', text='Normalize by Max')
+        row = layout.box().row(align=True)
+        op_props = row.operator('nd_utils.normalize_node_width', text='By Max')
         op_props.normalize_type = "MAX"
 
-        op_props = box.row(align=True).operator('nd_utils.normalize_node_width', text='Normalize by Min')
+        op_props = row.operator('nd_utils.normalize_node_width', text='By Min')
         op_props.normalize_type = "MIN"
 
-        op_props = box.row(align=True).operator('nd_utils.normalize_node_width', text='Normalize by Average')
+        op_props = row.operator('nd_utils.normalize_node_width', text='By Average')
         op_props.normalize_type = "AVERAGE"
+
+        layout.row().operator('nd_utils.batch_label')
 
 def get_nodes(context):
     tree = context.space_data.node_tree
@@ -121,10 +125,50 @@ class NODEUTILS_OT_NORMALIZE_NODE_WIDTH(bpy.types.Operator):
             node.width = width_to_set
         return {'FINISHED'}
 
+class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator):
+    bl_label = "Batch Label"
+    bl_idname = "nd_utils.batch_label"
+    bl_description = "Renames all selected nodes according to specified label"
+    bl_options = {'REGISTER', 'UNDO'} 
+
+    label: StringProperty(name='', default='')
+
+    @classmethod
+    def poll(cls, context):
+        space = context.space_data
+        valid_trees = ("ShaderNodeTree", "CompositorNodeTree", "TextureNodeTree", "GeometryNodeTree")
+        is_valid = space.type == 'NODE_EDITOR' and space.node_tree is not None and space.tree_type in valid_trees
+        return is_valid
+
+  
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        row.label(icon='NODE')
+        row.prop(self, "label")
+
+
+    def execute(self, context):
+        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.type != 'FRAME' and node.type != 'REROUTE'))
+
+        for node in selected_nodes:
+            node.label = self.label
+
+        self.label = ''
+        return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.type != 'FRAME' and node.type != 'REROUTE'))
+        if not selected_nodes:
+            return {'CANCELLED'}    
+        return context.window_manager.invoke_props_popup(self, event)
+
+
 classes = (
     NODEUTILS_PT_main_panel,
     NODEUTILS_OT_SELECT_REROUTES,
     NODEUTILS_OT_NORMALIZE_NODE_WIDTH,
+    NODEUTILS_OT_BATCH_LABEL,
 )
 
 addon_keymaps = []
