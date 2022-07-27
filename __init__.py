@@ -102,7 +102,7 @@ class NODEUTILS_OT_NORMALIZE_NODE_WIDTH(bpy.types.Operator):
         return is_valid
 
     def execute(self, context):
-        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.type != 'FRAME'))
+        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.type != 'FRAME' and node.type != 'REROUTE'))
         if len(selected_nodes) <= 1:
             return {'CANCELLED'}
 
