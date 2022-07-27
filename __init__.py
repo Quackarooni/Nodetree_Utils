@@ -24,6 +24,7 @@ bl_info = {
 import bpy
 from bpy.props import EnumProperty
 
+#adapted from https://github.com/valcohen/tidy_group_inputs/blob/master/vbc_tidy_group_inputs.py
 class NODEUTILS_PT_main_panel(bpy.types.Panel):
     bl_space_type = 'NODE_EDITOR'
     bl_region_type = 'UI'
@@ -72,10 +73,11 @@ class NODEUTILS_OT_SELECT_REROUTES(bpy.types.Operator):
     def execute(self, context):
         nodes = get_nodes(context)
         reroutes = tuple(node for node in nodes if node.type == 'REROUTE')
+        will_selection_be_identical = all(node.select if node.type == 'REROUTE' else (not node.select) for node in nodes)
         
-        if not reroutes:
+        if not reroutes or will_selection_be_identical:
             return {'CANCELLED'}
-        
+
         for node in nodes:
             node.select = True if node.type == 'REROUTE' else False
         return {'FINISHED'}
