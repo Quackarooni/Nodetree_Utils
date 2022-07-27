@@ -144,8 +144,12 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         row = layout.row()
-        row.label(icon='NODE')
-        row.prop(self, "label")
+        if tuple(node for node in get_nodes(context) if (node.select and node.type != 'FRAME' and node.type != 'REROUTE')):
+            row.label(icon='NODE')
+            row.prop(self, "label")
+        else:
+            row.label(icon='ERROR')
+            row.label(text='No nodes selected')           
 
 
     def execute(self, context):
@@ -158,9 +162,6 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator):
         return {'FINISHED'}
     
     def invoke(self, context, event):
-        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.type != 'FRAME' and node.type != 'REROUTE'))
-        if not selected_nodes:
-            return {'CANCELLED'}    
         return context.window_manager.invoke_props_popup(self, event)
 
 
