@@ -64,18 +64,9 @@ def get_nodes(context):
 
     return tree.nodes
 
-class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator):
-    bl_label = "Select By Type"
-    bl_idname = "nd_utils.select_by_type"
-    bl_description = "Select by specific node type"
+class NodeUtilsBase:
+    bl_label = "Nodeutils Baseclass"
     bl_options = {'REGISTER', 'UNDO'} 
-
-    select_type: EnumProperty(name='normalize_type', items=(
-        ('NODES', 'NODES', ''), ('REROUTES', 'REROUTES', ''), ('FRAMES', 'FRAMES', ''),))
-
-    @classmethod
-    def description(self, context, props):
-        return f"Selects all {props.select_type.lower()}"
 
     @classmethod
     def poll(cls, context):
@@ -83,6 +74,19 @@ class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator):
         valid_trees = ("ShaderNodeTree", "CompositorNodeTree", "TextureNodeTree", "GeometryNodeTree")
         is_valid = space.type == 'NODE_EDITOR' and space.node_tree is not None and space.tree_type in valid_trees
         return is_valid
+
+
+class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Select By Type"
+    bl_idname = "nd_utils.select_by_type"
+    bl_description = "Select by specific node type"
+
+    select_type: EnumProperty(name='normalize_type', items=(
+        ('NODES', 'NODES', ''), ('REROUTES', 'REROUTES', ''), ('FRAMES', 'FRAMES', ''),))
+
+    @classmethod
+    def description(self, context, props):
+        return f"Selects all {props.select_type.lower()}"
 
     def execute(self, context):
         nodes = get_nodes(context)
@@ -107,11 +111,11 @@ class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator):
             node.select = True if check_condition(node.bl_static_type) else False
         return {'FINISHED'}
 
-class NODEUTILS_OT_NORMALIZE_NODE_WIDTH(bpy.types.Operator):
+
+class NODEUTILS_OT_NORMALIZE_NODE_WIDTH(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Normalize Node Width"
     bl_idname = "nd_utils.normalize_node_width"
     bl_description = "Sets uniform width for selected nodes"
-    bl_options = {'REGISTER', 'UNDO'} 
 
     normalize_type: EnumProperty(name='normalize_type', items=(
         ('MAX', 'MAX', ''), ('MIN', 'MIN', ''), ('AVERAGE', 'AVERAGE', ''),))
@@ -120,13 +124,6 @@ class NODEUTILS_OT_NORMALIZE_NODE_WIDTH(bpy.types.Operator):
     @classmethod
     def description(self, context, props):
         return f"Sets width to selected nodes according to their {self.desc_dict[props.normalize_type]}"
-
-    @classmethod
-    def poll(cls, context):
-        space = context.space_data
-        valid_trees = ("ShaderNodeTree", "CompositorNodeTree", "TextureNodeTree", "GeometryNodeTree")
-        is_valid = space.type == 'NODE_EDITOR' and space.node_tree is not None and space.tree_type in valid_trees
-        return is_valid
 
     def execute(self, context):
         selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type != 'FRAME' and node.bl_static_type != 'REROUTE'))
@@ -146,21 +143,13 @@ class NODEUTILS_OT_NORMALIZE_NODE_WIDTH(bpy.types.Operator):
             node.width = width_to_set
         return {'FINISHED'}
 
-class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator):
+
+class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Batch Label"
     bl_idname = "nd_utils.batch_label"
     bl_description = "Renames all selected nodes according to specified label"
-    bl_options = {'REGISTER', 'UNDO'} 
 
     label: StringProperty(name='', default='')
-
-    @classmethod
-    def poll(cls, context):
-        space = context.space_data
-        valid_trees = ("ShaderNodeTree", "CompositorNodeTree", "TextureNodeTree", "GeometryNodeTree")
-        is_valid = space.type == 'NODE_EDITOR' and space.node_tree is not None and space.tree_type in valid_trees
-        return is_valid
-
   
     def draw(self, context):
         layout = self.layout
@@ -171,7 +160,6 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator):
         else:
             row.label(icon='ERROR')
             row.label(text='No nodes selected')           
-
 
     def execute(self, context):
         selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type != 'FRAME' and node.bl_static_type != 'REROUTE'))
