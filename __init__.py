@@ -33,11 +33,14 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
     
     def draw(self, context):
         layout = self.layout
-        layout.label(text="Select by Type (WIP):")
+        layout.label(text="Select by Type:")
         row = layout.box().row(align=True)
-        op_props = row.operator('nd_utils.select_reroutes', text='Nodes')
-        op_props = row.operator('nd_utils.select_reroutes', text='Reroutes')
-        op_props = row.operator('nd_utils.select_reroutes', text='Frame')
+        op_props = row.operator('nd_utils.select_by_type', text='Nodes')
+        op_props.select_type = "NODES"
+        op_props = row.operator('nd_utils.select_by_type', text='Reroutes')
+        op_props.select_type = "REROUTES"
+        op_props = row.operator('nd_utils.select_by_type', text='Frames')
+        op_props.select_type = "FRAMES"
 
         layout.label(text="Normalize Node Width:")
         row = layout.box().row(align=True)
@@ -61,11 +64,18 @@ def get_nodes(context):
 
     return tree.nodes
 
-class NODEUTILS_OT_SELECT_REROUTES(bpy.types.Operator):
-    bl_label = "Select All Reroutes"
-    bl_idname = "nd_utils.select_reroutes"
-    bl_description = "Aligns nodes by their leftmost edge"
-    bl_options = {'REGISTER', 'UNDO_GROUPED'} 
+class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator):
+    bl_label = "Select By Type"
+    bl_idname = "nd_utils.select_by_type"
+    bl_description = "Select by specific node type"
+    bl_options = {'REGISTER', 'UNDO'} 
+
+    select_type: EnumProperty(name='normalize_type', items=(
+        ('NODES', 'NODES', ''), ('REROUTES', 'REROUTES', ''), ('FRAMES', 'FRAMES', ''),))
+
+    @classmethod
+    def description(self, context, props):
+        return f"Selects all {props.select_type.lower()}"
 
     @classmethod
     def poll(cls, context):
@@ -76,14 +86,25 @@ class NODEUTILS_OT_SELECT_REROUTES(bpy.types.Operator):
 
     def execute(self, context):
         nodes = get_nodes(context)
-        reroutes = tuple(node for node in nodes if node.type == 'REROUTE')
-        will_selection_be_identical = all(node.select if node.type == 'REROUTE' else (not node.select) for node in nodes)
         
-        if not reroutes or will_selection_be_identical:
+        if self.select_type == 'NODES':
+            def check_condition(node_type):
+                return node_type not in ('REROUTE', 'FRAME')     
+        elif self.select_type == 'REROUTES':
+            def check_condition(node_type):
+                return node_type == 'REROUTE'
+        elif self.select_type == 'FRAMES':
+            def check_condition(node_type):
+                return node_type == 'FRAME'
+        
+        nodes_to_select = tuple(node for node in nodes if check_condition(node.bl_static_type))
+        will_selection_be_identical = all(node.select if check_condition(node.bl_static_type) else (not node.select) for node in nodes)
+        
+        if not nodes_to_select or will_selection_be_identical:
             return {'CANCELLED'}
 
         for node in nodes:
-            node.select = True if node.type == 'REROUTE' else False
+            node.select = True if check_condition(node.bl_static_type) else False
         return {'FINISHED'}
 
 class NODEUTILS_OT_NORMALIZE_NODE_WIDTH(bpy.types.Operator):
@@ -108,7 +129,7 @@ class NODEUTILS_OT_NORMALIZE_NODE_WIDTH(bpy.types.Operator):
         return is_valid
 
     def execute(self, context):
-        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.type != 'FRAME' and node.type != 'REROUTE'))
+        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type != 'FRAME' and node.bl_static_type != 'REROUTE'))
         if len(selected_nodes) <= 1:
             return {'CANCELLED'}
 
@@ -144,7 +165,7 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         row = layout.row()
-        if tuple(node for node in get_nodes(context) if (node.select and node.type != 'FRAME' and node.type != 'REROUTE')):
+        if tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type != 'FRAME' and node.bl_static_type != 'REROUTE')):
             row.label(icon='NODE')
             row.prop(self, "label")
         else:
@@ -153,7 +174,7 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator):
 
 
     def execute(self, context):
-        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.type != 'FRAME' and node.type != 'REROUTE'))
+        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type != 'FRAME' and node.bl_static_type != 'REROUTE'))
 
         for node in selected_nodes:
             node.label = self.label
@@ -165,11 +186,14 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator):
         return context.window_manager.invoke_props_popup(self, event)
 
 
+
+
 classes = (
     NODEUTILS_PT_main_panel,
-    NODEUTILS_OT_SELECT_REROUTES,
+    NODEUTILS_OT_SELECT_BY_TYPE,
     NODEUTILS_OT_NORMALIZE_NODE_WIDTH,
     NODEUTILS_OT_BATCH_LABEL,
+
 )
 
 addon_keymaps = []
