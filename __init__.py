@@ -53,6 +53,11 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
         op_props = row.operator('nd_utils.normalize_node_width', text='By Average')
         op_props.normalize_type = "AVERAGE"
 
+        layout.label(text="Label Reroutes by Socket:")
+        row = layout.box().row(align=True)
+        op_props = row.operator('nd_utils.label_reroutes', text='By Input')
+        op_props = row.operator('nd_utils.label_reroutes', text='By Output')        
+
         layout.row().operator('nd_utils.batch_label')
 
 def get_nodes(context):
@@ -154,7 +159,7 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator, NodeUtilsBase):
     def draw(self, context):
         layout = self.layout
         row = layout.row()
-        if tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type != 'FRAME' and node.bl_static_type != 'REROUTE')):
+        if tuple(node for node in get_nodes(context) if node.select):
             row.label(icon='NODE')
             row.prop(self, "label")
         else:
@@ -162,7 +167,7 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator, NodeUtilsBase):
             row.label(text='No nodes selected')           
 
     def execute(self, context):
-        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type != 'FRAME' and node.bl_static_type != 'REROUTE'))
+        selected_nodes = tuple(node for node in get_nodes(context) if node.select)
 
         for node in selected_nodes:
             node.label = self.label
@@ -174,6 +179,50 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator, NodeUtilsBase):
         return context.window_manager.invoke_props_popup(self, event)
 
 
+class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Label Reroutes"
+    bl_idname = "nd_utils.label_reroutes"
+    bl_description = "Labels selected reroutes based on their input/output"
+    bl_options = {'REGISTER', 'UNDO_GROUPED'}
+
+    label: StringProperty(name='', default='')
+  
+    def check_parent_label(self, node, level=0):
+        if level >= 100:
+            return ['RECURSION ERROR']
+        for socket in node.inputs:
+            if node.label != '' or len(socket.links) == 0 or not node.select:
+                return node.label
+
+            link = socket.links[0]
+            if (link.from_node.bl_static_type != 'REROUTE'):
+                return link.from_socket.name
+            
+            label = link.from_node.label
+            if label != '':
+                return label
+            return self.check_parent_label(link.from_node, level=level+1)
+
+
+    def execute(self, context):
+        init_reroutes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type == 'REROUTE'))
+        reroutes = sorted(init_reroutes, key=lambda n: n.location.x)
+        if not reroutes:
+            return {'CANCELLED'}
+
+        old_labels = [reroute.label for reroute in reroutes]
+        new_labels = []
+        for reroute in reroutes:
+            new_label = self.check_parent_label(reroute)
+            if new_label == ['RECURSION ERROR']:
+                self.report({'ERROR'}, "RECURSION_ERROR: Exceeded recursion limit. \nTry again with a smaller selection, or make sure input-to-output goes left-to-right.")
+                return {'CANCELLED'}
+            reroute.label = new_label
+            new_labels.append(new_label)
+
+        if (old_labels == new_labels):
+            return {'CANCELLED'}
+        return {'FINISHED'}
 
 
 classes = (
@@ -181,6 +230,7 @@ classes = (
     NODEUTILS_OT_SELECT_BY_TYPE,
     NODEUTILS_OT_NORMALIZE_NODE_WIDTH,
     NODEUTILS_OT_BATCH_LABEL,
+    NODEUTILS_OT_LABEL_REROUTES
 
 )
 
