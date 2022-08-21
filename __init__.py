@@ -59,6 +59,8 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
         op_props = row.operator('nd_utils.label_reroutes', text='By Output')        
 
         layout.row().operator('nd_utils.batch_label')
+        layout.row().operator('nd_utils.recenter_nodes')
+
 
 def get_nodes(context):
     tree = context.space_data.node_tree
@@ -224,13 +226,46 @@ class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
             return {'CANCELLED'}
         return {'FINISHED'}
 
+class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Recenter Nodes"
+    bl_idname = "nd_utils.recenter_nodes"
+    bl_description = "Places selected nodes such that their middle point is at the origin"
+    bl_options = {'REGISTER', 'UNDO_GROUPED'}
+
+    def execute(self, context):
+        nodes = tuple(node for node in get_nodes(context))
+        if not nodes:
+            return {'CANCELLED'}
+        
+        
+        for index, node  in enumerate(nodes):
+            if index == 0:
+                most_left = node.location.x
+                most_right = node.location.x + node.dimensions.x
+                most_top = node.location.y
+                most_bottom = node.location.y + node.dimensions.y
+                continue
+            
+            most_left = min(most_left, node.location.x)
+            most_right = max(most_right, node.location.x + node.dimensions.x)
+            most_top = max(most_top, node.location.y)
+            most_bottom = min(most_bottom, node.location.y + node.dimensions.y)
+
+        midpoint_x = 0.5*(most_left+most_right)
+        midpoint_y = 0.5*(most_top+most_bottom)
+
+        for node in nodes:
+            node.location.x -= midpoint_x
+            node.location.y -= midpoint_y
+        return {'FINISHED'}
 
 classes = (
     NODEUTILS_PT_main_panel,
     NODEUTILS_OT_SELECT_BY_TYPE,
     NODEUTILS_OT_NORMALIZE_NODE_WIDTH,
     NODEUTILS_OT_BATCH_LABEL,
-    NODEUTILS_OT_LABEL_REROUTES
+    NODEUTILS_OT_LABEL_REROUTES,
+    NODEUTILS_OT_RECENTER_NODES
 
 )
 
