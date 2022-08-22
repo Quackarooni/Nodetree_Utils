@@ -251,8 +251,11 @@ class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
             most_top = max(most_top, node.location.y)
             most_bottom = min(most_bottom, node.location.y + node.dimensions.y)
 
-        midpoint_x = 0.5*(most_left+most_right)
-        midpoint_y = 0.5*(most_top+most_bottom)
+        midpoint_x = 0.5*(most_left + most_right)
+        midpoint_y = 0.5*(most_top + most_bottom)
+
+        if midpoint_x == 0 and midpoint_y == 0:
+            return {'CANCELLED'}
 
         for node in nodes:
             node.location.x -= midpoint_x
