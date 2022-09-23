@@ -22,7 +22,7 @@ bl_info = {
 }
 
 import bpy
-from bpy.props import EnumProperty, StringProperty
+from bpy.props import EnumProperty, StringProperty, IntProperty
 
 #adapted from https://github.com/valcohen/tidy_group_inputs/blob/master/vbc_tidy_group_inputs.py
 class NODEUTILS_PT_main_panel(bpy.types.Panel):
@@ -59,8 +59,8 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
         op_props = row.operator('nd_utils.label_reroutes', text='By Output')        
 
         layout.row().operator('nd_utils.batch_label')
+        layout.row().operator('nd_utils.set_node_width')
         layout.row().operator('nd_utils.recenter_nodes')
-
 
 def get_nodes(context):
     tree = context.space_data.node_tree
@@ -180,6 +180,33 @@ class NODEUTILS_OT_BATCH_LABEL(bpy.types.Operator, NodeUtilsBase):
     def invoke(self, context, event):
         return context.window_manager.invoke_props_popup(self, event)
 
+class NODEUTILS_OT_SET_WIDTH(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Set Node Width"
+    bl_idname = "nd_utils.set_node_width"
+    bl_description = "Resizes all selected nodes according to specified width"
+
+    width: IntProperty(name='', default=30, min=30)
+    last_resized_nodes = []
+  
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        if tuple(node for node in get_nodes(context) if node.select):
+            row.label(icon='NODE')
+            row.prop(self, "width")
+        else:
+            row.label(icon='ERROR')
+            row.label(text='No nodes selected')           
+
+    def execute(self, context):
+        selected_nodes = tuple(node for node in get_nodes(context) if node.select)
+        for node in selected_nodes:
+            node.width = self.width
+
+        return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_popup(self, event)
 
 class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Label Reroutes"
@@ -238,7 +265,7 @@ class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
             return {'CANCELLED'}
         
         
-        for index, node  in enumerate(nodes):
+        for index, node in enumerate(nodes):
             if index == 0:
                 most_left = node.location.x
                 most_right = node.location.x + node.dimensions.x
@@ -267,6 +294,7 @@ classes = (
     NODEUTILS_OT_SELECT_BY_TYPE,
     NODEUTILS_OT_NORMALIZE_NODE_WIDTH,
     NODEUTILS_OT_BATCH_LABEL,
+    NODEUTILS_OT_SET_WIDTH,
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES
 
