@@ -23,13 +23,14 @@ bl_info = {
 
 import bpy
 from bpy.props import EnumProperty, StringProperty, IntProperty
+import itertools
 
 #adapted from https://github.com/valcohen/tidy_group_inputs/blob/master/vbc_tidy_group_inputs.py
 class NODEUTILS_PT_main_panel(bpy.types.Panel):
     bl_space_type = 'NODE_EDITOR'
     bl_region_type = 'UI'
     bl_label = 'Node Utils'
-    bl_category = 'Group'
+    bl_category = 'Utils'
     
     def draw(self, context):
         layout = self.layout
@@ -57,6 +58,13 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
         row = layout.box().row(align=True)
         op_props = row.operator('nd_utils.label_reroutes', text='By Input')
         op_props = row.operator('nd_utils.label_reroutes', text='By Output')        
+
+        layout.label(text="Toggle Unused Sockets:")
+        row = layout.box().row(align=True)
+        op_props = row.operator('nd_utils.toggle_unused_sockets', text='Inputs')
+        op_props.sockets_to_hide = "INPUT"
+        op_props = row.operator('nd_utils.toggle_unused_sockets', text='Outputs')
+        op_props.sockets_to_hide = "OUTPUT"
 
         layout.row().operator('nd_utils.batch_label')
         layout.row().operator('nd_utils.set_node_width')
@@ -88,7 +96,7 @@ class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator, NodeUtilsBase):
     bl_idname = "nd_utils.select_by_type"
     bl_description = "Select by specific node type"
 
-    select_type: EnumProperty(name='normalize_type', items=(
+    select_type: EnumProperty(name='select_type', items=(
         ('NODES', 'NODES', ''), ('REROUTES', 'REROUTES', ''), ('FRAMES', 'FRAMES', ''),))
 
     @classmethod
@@ -256,7 +264,7 @@ class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
 class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Recenter Nodes"
     bl_idname = "nd_utils.recenter_nodes"
-    bl_description = "Places selected nodes such that their middle point is at the origin"
+    bl_description = "Repositions nodetree such that its midpoint is at the origin"
     bl_options = {'REGISTER', 'UNDO_GROUPED'}
 
     def execute(self, context):
@@ -289,6 +297,38 @@ class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
             node.location.y -= midpoint_y
         return {'FINISHED'}
 
+class NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Toggle Unused Sockets"
+    bl_idname = "nd_utils.toggle_unused_sockets"
+    bl_description = "Toggles the visibility of unconnected node sockets"
+
+    sockets_to_hide: EnumProperty(name='sockets_to_hide', items=(
+        ('INPUT', 'INPUT', ''), ('OUTPUT', 'OUTPUT', ''),))
+
+    @classmethod
+    def description(self, context, props):
+        return f"Toggles the visibility of unconnected {props.sockets_to_hide.lower()} sockets"
+
+    def execute(self, context):
+        selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type != 'FRAME' and node.bl_static_type != 'REROUTE'))
+        
+        if self.sockets_to_hide == 'INPUT':
+            all_sockets = itertools.chain.from_iterable(
+                (socket for socket in node.inputs) for node in selected_nodes)
+        else:
+            all_sockets = itertools.chain.from_iterable(
+                (socket for socket in node.outputs) for node in selected_nodes)
+
+        unused_sockets = tuple(socket for socket in all_sockets if socket.enabled and not socket.is_linked)
+        if len(unused_sockets) <= 0:
+            return {'CANCELLED'}
+
+        toggle_value = any(not socket.hide for socket in unused_sockets)
+        for socket in unused_sockets:
+            socket.hide = toggle_value
+        return {'FINISHED'}
+
+
 classes = (
     NODEUTILS_PT_main_panel,
     NODEUTILS_OT_SELECT_BY_TYPE,
@@ -296,7 +336,8 @@ classes = (
     NODEUTILS_OT_BATCH_LABEL,
     NODEUTILS_OT_SET_WIDTH,
     NODEUTILS_OT_LABEL_REROUTES,
-    NODEUTILS_OT_RECENTER_NODES
+    NODEUTILS_OT_RECENTER_NODES,
+    NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS
 
 )
 
