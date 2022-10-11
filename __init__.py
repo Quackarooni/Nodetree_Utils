@@ -59,10 +59,12 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
         op_props = row.operator('nd_utils.normalize_node_width', text='By Average')
         op_props.normalize_type = "AVERAGE"
 
-        layout.label(text="Label Reroutes by Socket: (WIP)")
+        layout.label(text="Label Reroutes by Socket:")
         row = layout.box().row(align=True)
         op_props = row.operator('nd_utils.label_reroutes', text='By Input')
+        op_props.check_by = "INPUT"
         op_props = row.operator('nd_utils.label_reroutes', text='By Output')        
+        op_props.check_by = "OUTPUT"
 
         layout.label(text="Toggle Unused Sockets:")
         row = layout.box().row(align=True)
@@ -246,9 +248,19 @@ class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
     bl_idname = "nd_utils.label_reroutes"
     bl_description = "Labels selected reroutes based on their input/output"
     bl_options = {'REGISTER', 'UNDO_GROUPED'}
-
-    label: StringProperty(name='', default='')
   
+    check_by: EnumProperty(name='check_by', items=(
+        ('INPUT', 'INPUT', ''), ('OUTPUT', 'OUTPUT', ''),))
+
+    @classmethod
+    def description(self, context, props):
+        if props.check_by == "INPUT":
+            msg_end = "input"
+        else:
+            msg_end = f"most recently connected {props.check_by.lower()}"
+
+        return f"Labels selected reroutes based on their {msg_end} link"
+
     def check_parent_label(self, node, level=0):
         if level >= 100:
             return ['RECURSION ERROR']
@@ -265,17 +277,39 @@ class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
                 return label
             return self.check_parent_label(link.from_node, level=level+1)
 
+    def check_child_label(self, node, level=0):
+        if level >= 100:
+            return ['RECURSION ERROR']
+        for socket in node.outputs:
+            if node.label != '' or len(socket.links) == 0 or not node.select:
+                return node.label
+
+            link = socket.links[-1]
+            if (link.to_node.bl_static_type != 'REROUTE'):
+                return link.to_socket.name
+            
+            label = link.to_node.label
+            if label != '':
+                return label
+            return self.check_child_label(link.to_node, level=level+1)
+
 
     def execute(self, context):
+        use_inputs = self.check_by == "INPUT"
+
         init_reroutes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type == 'REROUTE'))
-        reroutes = sorted(init_reroutes, key=lambda n: n.location.x)
+        reroutes = sorted(init_reroutes, key=lambda n: n.location.x, reverse=(not use_inputs))
         if not reroutes:
             return {'CANCELLED'}
 
         old_labels = [reroute.label for reroute in reroutes]
         new_labels = []
         for reroute in reroutes:
-            new_label = self.check_parent_label(reroute)
+            if use_inputs:
+                new_label = self.check_parent_label(reroute)
+            else:
+                new_label = self.check_child_label(reroute)
+
             if new_label == ['RECURSION ERROR']:
                 self.report({'ERROR'}, "RECURSION_ERROR: Exceeded recursion limit. \nTry again with a smaller selection, or make sure input-to-output goes left-to-right.")
                 return {'CANCELLED'}
@@ -351,6 +385,7 @@ class NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS(bpy.types.Operator, NodeUtilsBase):
         for socket in unused_sockets:
             socket.hide = toggle_value
         return {'FINISHED'}
+
 class NodetreeUtilsProperties(bpy.types.PropertyGroup):
     selection_mode: EnumProperty(name='Selection Mode', description='Toggles what mode of selection is used.',default='New', items=(
         ('New', 'New', 'Creates a new selection out of the specified nodes', 'SELECT_SET', 0),
