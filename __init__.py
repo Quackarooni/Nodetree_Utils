@@ -35,13 +35,18 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         layout.label(text="Select by Type:")
-        row = layout.box().row(align=True)
+        box = layout.box()
+        col = box.column(align=True)
+        col.label(text="Selection Mode:")
+        col.separator(factor=0.5)
+        col.prop(context.window_manager.nd_utils_props, "selection_mode", text="")
+        row = box.row(align=True)
         op_props = row.operator('nd_utils.select_by_type', text='Nodes')
-        op_props.select_type = "NODES"
+        op_props.select_target = "NODES"
         op_props = row.operator('nd_utils.select_by_type', text='Reroutes')
-        op_props.select_type = "REROUTES"
+        op_props.select_target = "REROUTES"
         op_props = row.operator('nd_utils.select_by_type', text='Frames')
-        op_props.select_type = "FRAMES"
+        op_props.select_target = "FRAMES"
 
         layout.label(text="Normalize Node Width:")
         row = layout.box().row(align=True)
@@ -54,7 +59,7 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
         op_props = row.operator('nd_utils.normalize_node_width', text='By Average')
         op_props.normalize_type = "AVERAGE"
 
-        layout.label(text="Label Reroutes by Socket:")
+        layout.label(text="Label Reroutes by Socket: (WIP)")
         row = layout.box().row(align=True)
         op_props = row.operator('nd_utils.label_reroutes', text='By Input')
         op_props = row.operator('nd_utils.label_reroutes', text='By Output')        
@@ -96,34 +101,54 @@ class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator, NodeUtilsBase):
     bl_idname = "nd_utils.select_by_type"
     bl_description = "Select by specific node type"
 
-    select_type: EnumProperty(name='select_type', items=(
+    select_target: EnumProperty(name='select_target', items=(
         ('NODES', 'NODES', ''), ('REROUTES', 'REROUTES', ''), ('FRAMES', 'FRAMES', ''),))
-
     @classmethod
     def description(self, context, props):
-        return f"Selects all {props.select_type.lower()}"
+        return f"Targets {props.select_target.lower()} for selection"
 
     def execute(self, context):
+        selection_mode = context.window_manager.nd_utils_props.selection_mode
         nodes = get_nodes(context)
-        
-        if self.select_type == 'NODES':
+        selected_nodes = set(node for node in nodes if node.select)
+
+        if self.select_target == 'NODES':
             def check_condition(node_type):
                 return node_type not in ('REROUTE', 'FRAME')     
-        elif self.select_type == 'REROUTES':
+        elif self.select_target == 'REROUTES':
             def check_condition(node_type):
                 return node_type == 'REROUTE'
-        elif self.select_type == 'FRAMES':
+        elif self.select_target == 'FRAMES':
             def check_condition(node_type):
                 return node_type == 'FRAME'
         
-        nodes_to_select = tuple(node for node in nodes if check_condition(node.bl_static_type))
-        will_selection_be_identical = all(node.select if check_condition(node.bl_static_type) else (not node.select) for node in nodes)
+        nodes_of_spec_type = set(node for node in nodes if check_condition(node.bl_static_type))
         
-        if not nodes_to_select or will_selection_be_identical:
+        if selection_mode == 'New':
+            nodes_to_select = nodes_of_spec_type
+        elif selection_mode == 'Add':
+            nodes_to_select = selected_nodes.union(nodes_of_spec_type)
+        elif selection_mode == 'Subtract':
+            nodes_to_select = selected_nodes.difference(nodes_of_spec_type)
+        elif selection_mode == 'Intersection':
+            nodes_to_select = selected_nodes.intersection(nodes_of_spec_type)
+        elif selection_mode == 'Invert':
+            nodes_to_select = selected_nodes.symmetric_difference(nodes_of_spec_type)
+        else:
+            return {'CANCELLED'}
+
+        will_selection_be_identical = nodes_to_select == selected_nodes
+        if (selection_mode == "New" or selection_mode == "Intersection") and not nodes_to_select:
+            self.report({'INFO'}, f'No {self.select_target.lower()} found. Ignoring selection.')
+            return {'CANCELLED'}
+        if will_selection_be_identical:
             return {'CANCELLED'}
 
         for node in nodes:
-            node.select = True if check_condition(node.bl_static_type) else False
+            node.select = False
+        for node in nodes_to_select:
+            node.select = True
+
         return {'FINISHED'}
 
 
@@ -272,7 +297,6 @@ class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
         if not nodes:
             return {'CANCELLED'}
         
-        
         for index, node in enumerate(nodes):
             if index == 0:
                 most_left = node.location.x
@@ -327,9 +351,17 @@ class NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS(bpy.types.Operator, NodeUtilsBase):
         for socket in unused_sockets:
             socket.hide = toggle_value
         return {'FINISHED'}
-
+class NodetreeUtilsProperties(bpy.types.PropertyGroup):
+    selection_mode: EnumProperty(name='Selection Mode', description='Toggles what mode of selection is used.',default='New', items=(
+        ('New', 'New', 'Creates a new selection out of the specified nodes', 'SELECT_SET', 0),
+        ('Add', 'Add', 'Adds specified nodes from current selection', 'SELECT_EXTEND', 1), 
+        ('Subtract', 'Subtract', 'Removes specified nodes from current selection', 'SELECT_SUBTRACT', 2), 
+        ('Intersection', 'Intersection', 'Only selects nodes shared between specified nodes and current selection','SELECT_INTERSECT', 3),
+        ('Invert', 'Invert', 'Flip the selection state of the specified nodes','SELECT_DIFFERENCE', 4)
+        ))
 
 classes = (
+    NodetreeUtilsProperties,
     NODEUTILS_PT_main_panel,
     NODEUTILS_OT_SELECT_BY_TYPE,
     NODEUTILS_OT_NORMALIZE_NODE_WIDTH,
@@ -338,17 +370,16 @@ classes = (
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS
-
 )
 
 addon_keymaps = []
 keymap_defs = ()
 
-
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-
+        
+    bpy.types.WindowManager.nd_utils_props = bpy.props.PointerProperty(type=NodetreeUtilsProperties)
     ''' 
     addon_keymaps.clear()
     if key_config := bpy.context.window_manager.keyconfigs.addon:
@@ -361,6 +392,8 @@ def register():
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+    
+    del bpy.types.WindowManager.nd_utils_props 
     '''
     for key_map, key_entry in addon_keymaps:
         key_map.keymap_items.remove(key_entry)
