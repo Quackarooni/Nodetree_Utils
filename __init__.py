@@ -59,19 +59,19 @@ class NODEUTILS_PT_main_panel(bpy.types.Panel):
         op_props = row.operator('nd_utils.normalize_node_width', text='By Average')
         op_props.normalize_type = "AVERAGE"
 
-        layout.label(text="Label Reroutes by Socket:")
-        row = layout.box().row(align=True)
-        op_props = row.operator('nd_utils.label_reroutes', text='By Input')
-        op_props.check_by = "INPUT"
-        op_props = row.operator('nd_utils.label_reroutes', text='By Output')        
-        op_props.check_by = "OUTPUT"
-
         layout.label(text="Toggle Unused Sockets:")
         row = layout.box().row(align=True)
         op_props = row.operator('nd_utils.toggle_unused_sockets', text='Inputs')
         op_props.sockets_to_hide = "INPUT"
         op_props = row.operator('nd_utils.toggle_unused_sockets', text='Outputs')
         op_props.sockets_to_hide = "OUTPUT"
+
+        layout.label(text="Label Reroutes by Links:")
+        row = layout.box().row(align=True)
+        op_props = row.operator('nd_utils.label_reroutes', text='By Input')
+        op_props.check_by = "INPUT"
+        op_props = row.operator('nd_utils.label_reroutes', text='By Output')        
+        op_props.check_by = "OUTPUT"
 
         layout.row().operator('nd_utils.batch_label')
         layout.row().operator('nd_utils.set_node_width')
