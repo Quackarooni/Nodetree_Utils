@@ -11,6 +11,11 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
         default=True,
         description="Toggles whether Normalize Width only uses unique with values for its calculations")
     
+    ignore_empty_selections: BoolProperty(
+        name="Ignore Empty Selections",
+        default=True,
+        description="Ignores selection by type for New and Intersect when resulting selection is empty")
+    
     display_switch_buttons: BoolProperty(
         name="Display Switch Buttons",
         default=True,
@@ -32,6 +37,7 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
 
         col = layout.row().column(heading="Options:")
         col.prop(self, "use_unique")
+        col.prop(self, "ignore_empty_selections")
         col.prop(self, "display_switch_buttons")
         col.prop(self, "display_mode")
 

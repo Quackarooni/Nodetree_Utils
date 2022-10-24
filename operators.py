@@ -42,6 +42,7 @@ class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator, NodeUtilsBase):
         return f"Targets {props.select_target.lower()} for selection"
 
     def execute(self, context):
+        prefs = fetch_user_preferences()
         selection_mode = context.window_manager.nd_utils_props.selection_mode
         nodes = get_nodes(context)
         selected_nodes = set(node for node in nodes if node.select)
@@ -71,9 +72,10 @@ class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator, NodeUtilsBase):
         else:
             return {'CANCELLED'}
 
-        if (selection_mode == "New" or selection_mode == "Intersection") and not nodes_to_select:
-            self.report({'INFO'}, f'No {self.select_target.lower()} found. Ignoring selection.')
-            return {'CANCELLED'}
+        if prefs.ignore_empty_selections:
+            if (selection_mode == "New" or selection_mode == "Intersection") and not nodes_to_select:
+                self.report({'INFO'}, f'No {self.select_target.lower()} found. Ignoring selection.')
+                return {'CANCELLED'}
         will_selection_be_identical = nodes_to_select == selected_nodes
         if will_selection_be_identical:
             return {'CANCELLED'}
