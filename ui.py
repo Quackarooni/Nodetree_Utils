@@ -10,6 +10,7 @@ from .operators import (
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
+    NODEUTILS_OT_TOGGLE_SELECT_TYPE,
     fetch_user_preferences
 )
 
@@ -77,9 +78,14 @@ class NODEUTILS_PT_main_panel(Panel):
         op_props = row.operator('nd_utils.label_reroutes', text='By Output')        
         op_props.check_by = "OUTPUT"
 
-        layout.row().operator('nd_utils.batch_label')
-        layout.row().operator('nd_utils.set_node_width')
-        layout.row().operator('nd_utils.recenter_nodes')
+        layout.label(text="Batch Operations:")
+        spacing = 0.25
+        col = layout.box().column(align=True)
+        col.operator('nd_utils.batch_label', text='Set Labels')
+        col.separator(factor=spacing)
+        col.operator('nd_utils.set_node_width')
+        col.separator(factor=spacing)
+        col.operator('nd_utils.recenter_nodes', text='Center at Origin')
 
         
 
