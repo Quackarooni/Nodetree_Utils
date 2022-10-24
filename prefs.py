@@ -6,9 +6,17 @@ import rna_keymap_ui
 class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
+    use_unique: BoolProperty(
+        name="Use Unique Values",
+        default=True,
+        description="Toggles whether Normalize Width only uses unique with values for its calculations")
+
     def draw(self, context):
         layout = self.layout
         keymap_spacing = 0.15
+
+        col = layout.row().column(heading="Options:")
+        col.prop(self, "use_unique")
 
         col = layout.box().column()
         col.label(text="Keymap List:", icon="KEYINGSET")

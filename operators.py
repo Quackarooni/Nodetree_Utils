@@ -3,15 +3,20 @@ import bpy
 from bpy.types import Operator
 from bpy.props import EnumProperty, StringProperty, IntProperty
 import itertools
+from pathlib import Path
 
 def get_nodes(context):
     tree = context.space_data.node_tree
-
+    fetch_user_preferences()
     if tree.nodes.active:
         while tree.nodes.active != context.active_node:
             tree = tree.nodes.active.node_tree
 
     return tree.nodes
+
+def fetch_user_preferences():
+    ADD_ON_PATH = Path(__file__).parent.name
+    return bpy.context.preferences.addons[ADD_ON_PATH].preferences
 
 class NodeUtilsBase:
     bl_label = "Nodeutils Baseclass"
@@ -95,11 +100,14 @@ class NODEUTILS_OT_NORMALIZE_NODE_WIDTH(bpy.types.Operator, NodeUtilsBase):
         return f"Sets width to selected nodes according to their {self.desc_dict[props.normalize_type]}"
 
     def execute(self, context):
+        prefs = fetch_user_preferences()
         selected_nodes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type != 'FRAME' and node.bl_static_type != 'REROUTE'))
         if len(selected_nodes) <= 1:
             return {'CANCELLED'}
 
-        node_widths = set(node.dimensions.x for node in selected_nodes)
+        width_init = (node.dimensions.x for node in selected_nodes)
+        node_widths = set(width_init)if prefs.use_unique else tuple(width_init)
+
         if self.normalize_type == 'AVERAGE':
             width_to_set = sum(node_widths)/len(node_widths)
         else:
