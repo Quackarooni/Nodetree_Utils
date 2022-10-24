@@ -1,4 +1,3 @@
-from ctypes import alignment
 import bpy
 
 from bpy.types import Panel
@@ -43,7 +42,7 @@ class NODEUTILS_PT_main_panel(Panel):
             col = box.column(align=True)
             col.label(text="Switch Selection Mode:")
             col.separator(factor=0.5)
-            
+
             row = col.row(align=True)
             row.alignment = 'EXPAND' if (prefs.display_mode != 'ICON') else 'CENTER'
             switch_names = ('First', 'Last', 'Cycle Up', 'Cycle Down') if (prefs.display_mode != 'ICON') else ['']*4
