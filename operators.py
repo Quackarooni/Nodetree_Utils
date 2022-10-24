@@ -294,6 +294,7 @@ class NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Toggle Unused Sockets"
     bl_idname = "nd_utils.toggle_unused_sockets"
     bl_description = "Toggles the visibility of unconnected node sockets"
+    bl_options = {'REGISTER'}
 
     sockets_to_hide: EnumProperty(name='sockets_to_hide', items=(
         ('INPUT', 'INPUT', ''), ('OUTPUT', 'OUTPUT', ''),))
@@ -321,13 +322,54 @@ class NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS(bpy.types.Operator, NodeUtilsBase):
             socket.hide = toggle_value
         return {'FINISHED'}
 
+class NODEUTILS_OT_TOGGLE_SELECT_TYPE(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Switch Select Type"
+    bl_idname = "nd_utils.switch_select_type"
+    bl_description = "Switches the select type according to specified option"
+    
+
+    switch_mode: EnumProperty(name='sockets_to_hide', items=(
+        ('SWITCH_TO_FIRST', 'SWITCH_TO_FIRST', ''), 
+        ('SWITCH_TO_LAST', 'SWITCH_TO_LAST', ''), 
+        ('CYCLE_UP', 'CYCLE_UP', ''), 
+        ('CYCLE_DOWN', 'CYCLE_DOWN', ''),))
+
+    def execute(self, context):
+        selection_enum = context.window_manager.nd_utils_props
+        enum_items = selection_enum.bl_rna.properties['selection_mode'].enum_items
+        current_select_mode = selection_enum.selection_mode
+
+        if not self.switch_mode.startswith('CYCLE'):
+            if self.switch_mode == 'SWITCH_TO_FIRST':
+                new_select_mode = enum_items[0].identifier
+            elif self.switch_mode == 'SWITCH_TO_LAST':
+                new_select_mode = enum_items[-1].identifier
+
+            selection_enum.selection_mode = new_select_mode
+            return {'CANCELLED'}
+
+        enum_dict = {}
+        for item in enum_items:
+            if item.identifier == current_select_mode:
+                current_select_id = item.value
+            enum_dict[item.value] = item.identifier
+
+        if self.switch_mode == "CYCLE_UP":
+            new_select_id = max(current_select_id - 1, 0)
+        elif self.switch_mode == "CYCLE_DOWN":
+            new_select_id = min(current_select_id + 1, len(enum_items) - 1)
+            
+        new_select_mode = enum_dict.get(new_select_id)
+        selection_enum.selection_mode = new_select_mode
+        return {'CANCELLED'}
+
 class NodetreeUtilsProperties(bpy.types.PropertyGroup):
     selection_mode: EnumProperty(name='Selection Mode', description='Toggles what mode of selection is used.',default='New', items=(
         ('New', 'New', 'Creates a new selection out of the specified nodes', 'SELECT_SET', 0),
         ('Add', 'Add', 'Adds specified nodes from current selection', 'SELECT_EXTEND', 1), 
         ('Subtract', 'Subtract', 'Removes specified nodes from current selection', 'SELECT_SUBTRACT', 2), 
         ('Intersection', 'Intersection', 'Only selects nodes shared between specified nodes and current selection','SELECT_INTERSECT', 3),
-        ('Invert', 'Invert', 'Flip the selection state of the specified nodes','SELECT_DIFFERENCE', 4)
+        ('Invert', 'Invert', 'Flip the selection state of the specified nodes','SELECT_DIFFERENCE', 4),
         ))
 
 classes = (
@@ -338,7 +380,8 @@ classes = (
     NODEUTILS_OT_SET_WIDTH,
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
-    NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS
+    NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
+    NODEUTILS_OT_TOGGLE_SELECT_TYPE
 )
 
 def register():

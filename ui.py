@@ -1,3 +1,4 @@
+from ctypes import alignment
 import bpy
 
 from bpy.types import Panel
@@ -9,7 +10,8 @@ from .operators import (
     NODEUTILS_OT_SET_WIDTH,
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
-    NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS
+    NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
+    fetch_user_preferences
 )
 
 class NODEUTILS_PT_main_panel(Panel):
@@ -19,6 +21,8 @@ class NODEUTILS_PT_main_panel(Panel):
     bl_category = 'Utils'
     
     def draw(self, context):
+        prefs = fetch_user_preferences()
+
         layout = self.layout
         layout.label(text="Select by Type:")
         box = layout.box()
@@ -33,6 +37,21 @@ class NODEUTILS_PT_main_panel(Panel):
         op_props.select_target = "REROUTES"
         op_props = row.operator('nd_utils.select_by_type', text='Frames')
         op_props.select_target = "FRAMES"
+
+
+        if prefs.display_switch_buttons:
+            col = box.column(align=True)
+            col.label(text="Switch Selection Mode:")
+            col.separator(factor=0.5)
+            
+            row = col.row(align=True)
+            row.alignment = 'EXPAND' if (prefs.display_mode != 'ICON') else 'CENTER'
+            switch_names = ('First', 'Last', 'Cycle Up', 'Cycle Down') if (prefs.display_mode != 'ICON') else ['']*4
+            switch_icons = ('TRIA_UP_BAR', 'TRIA_DOWN_BAR', 'TRIA_UP', 'TRIA_DOWN') if (prefs.display_mode != 'TEXT') else ['NONE']*4
+            switch_props = ('SWITCH_TO_FIRST', 'SWITCH_TO_LAST', 'CYCLE_UP', 'CYCLE_DOWN',)
+            for name, icon, prop in zip(switch_names, switch_icons, switch_props):
+                op_props = row.operator('nd_utils.switch_select_type', text=name, icon=icon)
+                op_props.switch_mode = prop
 
         layout.label(text="Normalize Node Width:")
         row = layout.box().row(align=True)
@@ -62,6 +81,8 @@ class NODEUTILS_PT_main_panel(Panel):
         layout.row().operator('nd_utils.batch_label')
         layout.row().operator('nd_utils.set_node_width')
         layout.row().operator('nd_utils.recenter_nodes')
+
+        
 
 def register():
     bpy.utils.register_class(NODEUTILS_PT_main_panel)

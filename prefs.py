@@ -10,6 +10,21 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
         name="Use Unique Values",
         default=True,
         description="Toggles whether Normalize Width only uses unique with values for its calculations")
+    
+    display_switch_buttons: BoolProperty(
+        name="Display Switch Buttons",
+        default=True,
+        description="Display buttons for switching selection types")
+
+    display_mode: EnumProperty(
+        name="Display Mode",
+        items=(
+            ("ICON", "Icon", "Display buttons as icons"),
+            ("TEXT", "Text", "Display buttons as text"),
+            ("TEXT AND ICON", "Text and Icon", "Display buttons as text and icons")
+        ),
+        default="TEXT AND ICON",
+        description="Specifies how to display switch buttons are displayed")
 
     def draw(self, context):
         layout = self.layout
@@ -17,6 +32,8 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
 
         col = layout.row().column(heading="Options:")
         col.prop(self, "use_unique")
+        col.prop(self, "display_switch_buttons")
+        col.prop(self, "display_mode")
 
         col = layout.box().column()
         col.label(text="Keymap List:", icon="KEYINGSET")
