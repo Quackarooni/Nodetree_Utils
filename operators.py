@@ -328,8 +328,8 @@ class NODEUTILS_OT_SWITCH_SELECT_TYPE(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Switch Select Type"
     bl_idname = "nd_utils.switch_select_type"
     bl_description = "Switches the select type according to specified option"
+    bl_options = {'INTERNAL'}
     
-
     switch_mode: EnumProperty(name='sockets_to_hide', items=(
         ('SWITCH_TO_FIRST', 'SWITCH_TO_FIRST', ''), 
         ('SWITCH_TO_LAST', 'SWITCH_TO_LAST', ''), 
@@ -348,7 +348,7 @@ class NODEUTILS_OT_SWITCH_SELECT_TYPE(bpy.types.Operator, NodeUtilsBase):
                 new_select_mode = enum_items[-1].identifier
 
             selection_enum.selection_mode = new_select_mode
-            return {'CANCELLED'}
+            return {'FINISHED'}
 
         enum_dict = {}
         for item in enum_items:
@@ -363,10 +363,20 @@ class NODEUTILS_OT_SWITCH_SELECT_TYPE(bpy.types.Operator, NodeUtilsBase):
             
         new_select_mode = enum_dict.get(new_select_id)
         selection_enum.selection_mode = new_select_mode
-        return {'CANCELLED'}
+        return {'FINISHED'}
+
+def refresh_ui(self, context):
+    for region in context.area.regions:
+        if region.type == "UI":
+            region.tag_redraw()
+    return None    
 
 class NodetreeUtilsProperties(bpy.types.PropertyGroup):
-    selection_mode: EnumProperty(name='Selection Mode', description='Toggles what mode of selection is used.',default='New', items=(
+    selection_mode: EnumProperty(name='Selection Mode', 
+        description='Toggles what mode of selection is used.',
+        default='New',
+        update=refresh_ui, 
+        items=(
         ('New', 'New', 'Creates a new selection out of the specified nodes', 'SELECT_SET', 0),
         ('Add', 'Add', 'Adds specified nodes from current selection', 'SELECT_EXTEND', 1), 
         ('Subtract', 'Subtract', 'Removes specified nodes from current selection', 'SELECT_SUBTRACT', 2), 
