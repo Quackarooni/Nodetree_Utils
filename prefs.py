@@ -60,18 +60,22 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
 
         get_kmi_l = sorted(set(get_kmi_l), key=get_kmi_l.index)
 
+        old_kmi_name = ''
+        is_first_entry = True
+        group_spacing = 0.5
+
         for km, kmi in get_kmi_l:
-            if not km.name == old_km_name:
-                col.label(text=str(km.name), icon="DOT")
+            if not kmi.name == old_kmi_name:
+                if not is_first_entry:
+                    col.separator(factor=group_spacing)
+                col.label(text=str(kmi.name), icon="DOT")
+
             col.context_pointer_set("keymap", km)
-            if kmi.idname in ('nd_align.center', 'nd_align.middle'):
-                if not self.hide_center_and_middle:
-                    rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
-                    col.separator(factor=keymap_spacing)
-            else:
-                rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
-                col.separator(factor=keymap_spacing)
-            old_km_name = km.name
+            
+            rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+            col.separator(factor=keymap_spacing)
+            old_kmi_name = kmi.name
+            is_first_entry = False
 
 
 def register():
