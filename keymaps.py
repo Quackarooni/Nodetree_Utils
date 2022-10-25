@@ -7,7 +7,7 @@ from .operators import (
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
-    
+    NODEUTILS_OT_SWITCH_SELECT_TYPE
 )
 
 addon_keymaps = []
@@ -15,6 +15,10 @@ keymap_defs = (
     (NODEUTILS_OT_SELECT_BY_TYPE.bl_idname, 'NONE', (('select_target', 'NODES'),)),
     (NODEUTILS_OT_SELECT_BY_TYPE.bl_idname, 'NONE', (('select_target', 'REROUTES'),)),
     (NODEUTILS_OT_SELECT_BY_TYPE.bl_idname, 'NONE', (('select_target', 'FRAMES'),)),
+    (NODEUTILS_OT_SWITCH_SELECT_TYPE.bl_idname, 'NONE', (('switch_mode', 'SWITCH_TO_FIRST'),)),
+    (NODEUTILS_OT_SWITCH_SELECT_TYPE.bl_idname, 'NONE', (('switch_mode', 'SWITCH_TO_LAST'),)),
+    (NODEUTILS_OT_SWITCH_SELECT_TYPE.bl_idname, 'NONE', (('switch_mode', 'CYCLE_UP'),)),
+    (NODEUTILS_OT_SWITCH_SELECT_TYPE.bl_idname, 'NONE', (('switch_mode', 'CYCLE_DOWN'),)),
     (NODEUTILS_OT_NORMALIZE_NODE_WIDTH.bl_idname, 'NONE',(('normalize_type', 'MAX'),)),
     (NODEUTILS_OT_NORMALIZE_NODE_WIDTH.bl_idname, 'NONE',(('normalize_type', 'MIN'),)),
     (NODEUTILS_OT_NORMALIZE_NODE_WIDTH.bl_idname, 'NONE',(('normalize_type', 'AVERAGE'),)),

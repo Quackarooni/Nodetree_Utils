@@ -324,7 +324,7 @@ class NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS(bpy.types.Operator, NodeUtilsBase):
             socket.hide = toggle_value
         return {'FINISHED'}
 
-class NODEUTILS_OT_TOGGLE_SELECT_TYPE(bpy.types.Operator, NodeUtilsBase):
+class NODEUTILS_OT_SWITCH_SELECT_TYPE(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Switch Select Type"
     bl_idname = "nd_utils.switch_select_type"
     bl_description = "Switches the select type according to specified option"
@@ -383,7 +383,7 @@ classes = (
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
-    NODEUTILS_OT_TOGGLE_SELECT_TYPE
+    NODEUTILS_OT_SWITCH_SELECT_TYPE
 )
 
 def register():
