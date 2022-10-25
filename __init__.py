@@ -16,7 +16,7 @@ bl_info = {
     "description": "Quality of life shortcuts for nodetrees",
     "author": "Quackers",
     "version": (1, 0),
-    "blender": (2, 83, 0),
+    "blender": (3, 0, 0),
     "location": "Node Editor > N Panel > Utils",
     "category": "Node",
 }
