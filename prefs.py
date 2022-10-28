@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import EnumProperty, BoolProperty, IntVectorProperty
-from .keymaps import addon_keymaps
-import rna_keymap_ui
+from .keymaps import addon_keymaps, prefs_display
+from . import keymap_ui
 
 class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
@@ -45,9 +45,9 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
         col.label(text="Keymap List:", icon="KEYINGSET")
 
         kc = bpy.context.window_manager.keyconfigs.user
-        old_km_name = ""
         get_kmi_l = []
-        for km_add, kmi_add in reversed(addon_keymaps):
+        labels = {}
+        for km_add, kmi_add, label in reversed(addon_keymaps):
             for km_con in kc.keymaps:
                 if km_add.name == km_con.name:
                     km = km_con
@@ -57,24 +57,44 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
                 if kmi_add.idname == kmi_con.idname:
                     if kmi_add.name == kmi_con.name:
                         get_kmi_l.append((km, kmi_con))
+                        label_list = labels.get(kmi_con.name, [])
+                        if (label not in label_list):
+                            label_list.append(label)
+                        labels[kmi_con.name] = label_list
+
+
 
         get_kmi_l = sorted(set(get_kmi_l), key=get_kmi_l.index)
-
-        old_kmi_name = ''
+        old_category = ''
         is_first_entry = True
         group_spacing = 0.5
 
         for km, kmi in get_kmi_l:
-            if not kmi.name == old_kmi_name:
+            curr_category = prefs_display[kmi.name]
+            if curr_category is None:
+                curr_category = kmi.name
+
+            if not curr_category == old_category:
                 if not is_first_entry:
                     col.separator(factor=group_spacing)
-                col.label(text=str(kmi.name), icon="DOT")
+                col.label(text=str(curr_category), icon="DOT")
 
             col.context_pointer_set("keymap", km)
             
-            rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+            #rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+            try:
+                label_list = labels[kmi.name]
+                if len(label_list) == 1:
+                    label = label_list[0]
+                else:
+                    label = label_list.pop(0)
+
+            except IndexError:
+                label = ''
+
+            keymap_ui.draw_kmi([], kc, km, kmi, col, 0, label=label)
             col.separator(factor=keymap_spacing)
-            old_kmi_name = kmi.name
+            old_category = curr_category
             is_first_entry = False
 
 
