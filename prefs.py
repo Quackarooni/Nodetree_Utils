@@ -66,8 +66,9 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
 
         get_kmi_l = sorted(set(get_kmi_l), key=get_kmi_l.index)
         old_category = ''
+        old_label = ''
         is_first_entry = True
-        group_spacing = 0.5
+        group_spacing = 0.35
 
         for km, kmi in get_kmi_l:
             curr_category = prefs_display[kmi.name]
@@ -82,19 +83,17 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
             col.context_pointer_set("keymap", km)
             
             #rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
-            try:
-                label_list = labels[kmi.name]
-                if len(label_list) == 1:
-                    label = label_list[0]
-                else:
-                    label = label_list.pop(0)
+            label_list = labels[kmi.name]
+            if len(label_list) == 1:
+                label = label_list[0]
+            else:
+                label = label_list.pop(0)
 
-            except IndexError:
-                label = ''
-
-            keymap_ui.draw_kmi([], kc, km, kmi, col, 0, label=label)
+            if old_label != label:
+                keymap_ui.draw_kmi([], kc, km, kmi, col, 0, label=label)
             col.separator(factor=keymap_spacing)
             old_category = curr_category
+            old_label = label
             is_first_entry = False
 
 
