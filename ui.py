@@ -1,5 +1,4 @@
 import bpy
-
 from bpy.types import Panel
 from .operators import (
     NodetreeUtilsProperties,
@@ -7,6 +6,7 @@ from .operators import (
     NODEUTILS_OT_NORMALIZE_NODE_WIDTH,
     NODEUTILS_OT_BATCH_LABEL,
     NODEUTILS_OT_SET_WIDTH,
+    NODEUTILS_OT_SET_COLOR,
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
@@ -79,11 +79,18 @@ class NODEUTILS_PT_main_panel(Panel):
         op_props.sockets_to_hide = "OUTPUT"
 
         layout.label(text="Batch Operations:")
-        spacing = 0.25
+        spacing = 0.55
         col = layout.box().column(align=True)
         col.operator('nd_utils.batch_label', text='Set Labels')
         col.separator(factor=spacing)
         col.operator('nd_utils.set_node_width')
+        col.separator(factor=spacing)
+        row = col.row(align=True)
+        op_props = row.operator('nd_utils.set_node_color', text='Set Color') 
+        op_props.color_opmode = "SET_COLOR"
+        op_props = row.operator('nd_utils.set_node_color', text='Clear Color')
+        col.row().prop(prefs, "custom_color", text="")
+        op_props.color_opmode = "CLEAR_COLOR"     
         col.separator(factor=spacing)
         col.operator('nd_utils.recenter_nodes', text='Center at Origin')
 

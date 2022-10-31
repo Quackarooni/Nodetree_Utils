@@ -1,4 +1,3 @@
-
 import bpy
 from bpy.types import Operator
 from bpy.props import EnumProperty, StringProperty, IntProperty
@@ -179,6 +178,43 @@ class NODEUTILS_OT_SET_WIDTH(bpy.types.Operator, NodeUtilsBase):
     
     def invoke(self, context, event):
         return context.window_manager.invoke_props_popup(self, event)
+
+#Somewhat inspired by: https://github.com/valcohen/tidy_group_inputs
+class NODEUTILS_OT_SET_COLOR(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Set Node Color"
+    bl_idname = "nd_utils.set_node_color"
+    bl_description = "Assigns specified color to all selected nodes."
+
+    color_opmode: EnumProperty(name='color_opmode', items=(
+        ('SET_COLOR', 'SET_COLOR', ''), ('CLEAR_COLOR', 'CLEAR_COLOR', ''),))
+
+    @classmethod
+    def description(self, context, props):
+        if props.color_opmode == 'SET_COLOR':
+            return "Sets specified custom color for all selected nodes"
+        else:
+            return "Resets custom color for all selected nodes"
+
+    def execute(self, context):
+        selected_nodes = tuple(node for node in get_nodes(context) if node.select)
+        old_status = tuple(node.use_custom_color for node in selected_nodes)
+        custom_color = fetch_user_preferences().custom_color
+        will_colors_be_identical = all(node.color == custom_color for node in selected_nodes)
+
+        if self.color_opmode == 'SET_COLOR':
+            for node in selected_nodes:
+                node.use_custom_color = True
+                node.color = custom_color
+        elif self.color_opmode == 'CLEAR_COLOR':
+            for node in selected_nodes:
+                node.use_custom_color = False
+                node.color = (0.608, 0.608, 0.608)
+        
+        new_status = tuple(node.use_custom_color for node in selected_nodes)
+        if (old_status == new_status) and will_colors_be_identical:
+            return {'CANCELLED'}
+        return {'FINISHED'}
+
 
 class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Label Reroutes"
@@ -390,6 +426,7 @@ classes = (
     NODEUTILS_OT_NORMALIZE_NODE_WIDTH,
     NODEUTILS_OT_BATCH_LABEL,
     NODEUTILS_OT_SET_WIDTH,
+    NODEUTILS_OT_SET_COLOR,
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,

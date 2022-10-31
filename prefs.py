@@ -31,6 +31,15 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
         default="TEXT AND ICON",
         description="Specifies how to display switch buttons are displayed")
 
+
+    custom_color: bpy.props.FloatVectorProperty (
+        name = "Custom Color",
+        description = "Color property for the Set Color Operator",
+        subtype = 'COLOR_GAMMA',
+        min = 0, max = 1,
+        default = [0.1,0.3,0.5]
+    )
+
     def draw(self, context):
         layout = self.layout
         keymap_spacing = 0.15
@@ -94,7 +103,7 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
 
             if old_label != label:
                 keymap_ui.draw_kmi([], kc, km, kmi, col, 0, label=label)
-            col.separator(factor=keymap_spacing)
+                col.separator(factor=keymap_spacing)
             old_category = curr_category
             old_label = label
             is_first_entry = False

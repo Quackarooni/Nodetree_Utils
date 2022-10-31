@@ -1,10 +1,10 @@
-from timeit import repeat
 import bpy
 from .operators import (
     NODEUTILS_OT_SELECT_BY_TYPE,
     NODEUTILS_OT_NORMALIZE_NODE_WIDTH,
     NODEUTILS_OT_BATCH_LABEL,
     NODEUTILS_OT_SET_WIDTH,
+    NODEUTILS_OT_SET_COLOR,
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
@@ -30,6 +30,8 @@ keymap_defs = (
     (NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS.bl_idname, 'NONE', None, 'Toggle Outputs', False, (('sockets_to_hide', 'OUTPUT'),)),
     (NODEUTILS_OT_BATCH_LABEL.bl_idname, 'NONE', 'Batch Operations', 'Set Labels', False, None,),
     (NODEUTILS_OT_SET_WIDTH.bl_idname, 'NONE', 'Batch Operations', '', False, None,),
+    (NODEUTILS_OT_SET_COLOR.bl_idname, 'NONE', 'Batch Operations', 'Set Color', False, (('color_opmode', 'SET_COLOR'),),),
+    (NODEUTILS_OT_SET_COLOR.bl_idname, 'NONE', 'Batch Operations', 'Clear Color', False, (('color_opmode', 'CLEAR_COLOR'),),),
     (NODEUTILS_OT_RECENTER_NODES.bl_idname, 'NONE', 'Batch Operations', 'Center at Origin', False, None,),
 )
 
