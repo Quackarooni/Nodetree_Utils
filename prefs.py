@@ -1,4 +1,3 @@
-from ctypes import alignment
 import bpy
 from bpy.props import EnumProperty, BoolProperty, IntVectorProperty
 from .keymaps import addon_keymaps, prefs_display
