@@ -304,6 +304,12 @@ class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
         if not nodes:
             return {'CANCELLED'}
         
+        parent_dict = {}
+        for node in nodes:
+            if node.parent is not None:
+                parent_dict[node] = node.parent
+            node.parent = None
+
         for index, node in enumerate(nodes):
             if index == 0:
                 most_left = node.location.x
@@ -321,11 +327,21 @@ class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
         midpoint_y = 0.5*(most_top + most_bottom)
 
         if midpoint_x == 0 and midpoint_y == 0:
+            for node in nodes:
+                node.parent = parent_dict.get(node, None)
             return {'CANCELLED'}
+
 
         for node in nodes:
             node.location.x -= midpoint_x
             node.location.y -= midpoint_y
+
+        for node in nodes:
+            node.parent = parent_dict.get(node, None)
+        
+        for region in context.area.regions:
+            region.tag_redraw()
+
         return {'FINISHED'}
 
 class NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS(bpy.types.Operator, NodeUtilsBase):
