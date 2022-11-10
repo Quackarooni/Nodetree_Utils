@@ -6,11 +6,9 @@ from pathlib import Path
 
 def get_nodes(context):
     tree = context.space_data.node_tree
-    fetch_user_preferences()
     if tree.nodes.active:
         while tree.nodes.active != context.active_node:
             tree = tree.nodes.active.node_tree
-
     return tree.nodes
 
 def fetch_user_preferences():
@@ -40,8 +38,10 @@ class NodeUtilsBase:
     def poll(cls, context):
         space = context.space_data
         valid_trees = ("ShaderNodeTree", "CompositorNodeTree", "TextureNodeTree", "GeometryNodeTree")
-        is_valid = space.type == 'NODE_EDITOR' and space.node_tree is not None and space.tree_type in valid_trees
-        return is_valid
+        is_existing = space.node_tree is not None
+        is_node_editor = space.type == 'NODE_EDITOR'
+        is_valid = space.tree_type in valid_trees
+        return all((is_existing, is_node_editor, is_valid))
 
 
 class NODEUTILS_OT_SELECT_BY_TYPE(bpy.types.Operator, NodeUtilsBase):
@@ -283,7 +283,7 @@ class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
 
 
     def execute(self, context):
-        use_inputs = self.check_by == "INPUT"
+        use_inputs = (self.check_by == "INPUT")
 
         init_reroutes = tuple(node for node in get_nodes(context) if (node.select and node.bl_static_type == 'REROUTE'))
         reroutes = sorted(init_reroutes, key=lambda n: n.location.x, reverse=(not use_inputs))
@@ -307,7 +307,7 @@ class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
         if (old_labels == new_labels):
             return {'CANCELLED'}
         return {'FINISHED'}
-        
+
 
 class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Recenter Nodes"
