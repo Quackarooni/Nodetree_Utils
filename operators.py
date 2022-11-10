@@ -17,6 +17,21 @@ def fetch_user_preferences():
     ADD_ON_PATH = Path(__file__).parent.name
     return bpy.context.preferences.addons[ADD_ON_PATH].preferences
 
+class deframe_nodes():
+    def __init__(self, nodes):
+        self.parent_dict = {}
+        for node in nodes:
+            if node.parent is not None:
+                self.parent_dict[node] = node.parent
+            node.parent = None
+    
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        for node, parent in self.parent_dict.items():
+            node.parent = parent
+
 class NodeUtilsBase:
     bl_label = "Nodeutils Baseclass"
     bl_options = {'REGISTER', 'UNDO'} 
@@ -292,6 +307,7 @@ class NODEUTILS_OT_LABEL_REROUTES(bpy.types.Operator, NodeUtilsBase):
         if (old_labels == new_labels):
             return {'CANCELLED'}
         return {'FINISHED'}
+        
 
 class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Recenter Nodes"
@@ -303,42 +319,32 @@ class NODEUTILS_OT_RECENTER_NODES(bpy.types.Operator, NodeUtilsBase):
         nodes = tuple(node for node in get_nodes(context))
         if not nodes:
             return {'CANCELLED'}
-        
-        parent_dict = {}
-        for node in nodes:
-            if node.parent is not None:
-                parent_dict[node] = node.parent
-            node.parent = None
 
-        for index, node in enumerate(nodes):
-            if index == 0:
-                most_left = node.location.x
-                most_right = node.location.x + node.dimensions.x
-                most_top = node.location.y
-                most_bottom = node.location.y + node.dimensions.y
-                continue
-            
-            most_left = min(most_left, node.location.x)
-            most_right = max(most_right, node.location.x + node.dimensions.x)
-            most_top = max(most_top, node.location.y)
-            most_bottom = min(most_bottom, node.location.y + node.dimensions.y)
+        with deframe_nodes(nodes):
+            for index, node in enumerate(nodes):
+                if index == 0:
+                    most_left = node.location.x
+                    most_right = node.location.x + node.dimensions.x
+                    most_top = node.location.y
+                    most_bottom = node.location.y + node.dimensions.y
+                    continue
+                
+                most_left = min(most_left, node.location.x)
+                most_right = max(most_right, node.location.x + node.dimensions.x)
+                most_top = max(most_top, node.location.y)
+                most_bottom = min(most_bottom, node.location.y + node.dimensions.y)
 
-        midpoint_x = 0.5*(most_left + most_right)
-        midpoint_y = 0.5*(most_top + most_bottom)
+            midpoint_x = 0.5*(most_left + most_right)
+            midpoint_y = 0.5*(most_top + most_bottom)
 
-        if midpoint_x == 0 and midpoint_y == 0:
-            for node, parent in parent_dict.items():
-                node.parent = parent
-            return {'CANCELLED'}
+            if midpoint_x == 0 and midpoint_y == 0:
+                return {'CANCELLED'}
 
+            for node in nodes:
+                node.location.x -= midpoint_x
+                node.location.y -= midpoint_y
 
-        for node in nodes:
-            node.location.x -= midpoint_x
-            node.location.y -= midpoint_y
-
-        for node, parent in parent_dict.items():
-            node.parent = parent
-        return {'FINISHED'}
+            return {'FINISHED'}
 
 class NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Toggle Unused Sockets"
