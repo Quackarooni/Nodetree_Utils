@@ -8,7 +8,11 @@ from .operators import (
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
-    NODEUTILS_OT_SWITCH_SELECT_TYPE
+    NODEUTILS_OT_SWITCH_SELECT_TYPE,
+    NODEUTILS_OT_SWITCH_VIEWER_DOMAIN,
+    NODEUTILS_OT_PIE_MENU_SWITCH_VIEWER_DOMAIN,
+    NODEUTILS_MT_SWITCH_VIEWER_DOMAIN_OPTIONS,
+    NODEUTILS_OT_SWITCH_VIEWER_DOMAIN_INVOKE_MENU,
 )
 
 addon_keymaps = []
@@ -28,6 +32,12 @@ keymap_defs = (
     (NODEUTILS_OT_LABEL_REROUTES.bl_idname, 'NONE', None, 'By Output', False, (('check_by', 'OUTPUT'),)),
     (NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS.bl_idname, 'NONE', None, 'Toggle Inputs', False, (('sockets_to_hide', 'INPUT'),)),
     (NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS.bl_idname, 'NONE', None, 'Toggle Outputs', False, (('sockets_to_hide', 'OUTPUT'),)),
+    (NODEUTILS_OT_SWITCH_VIEWER_DOMAIN.bl_idname, 'NONE', None, 'Switch to First', False, (('switch_mode', 'SWITCH_TO_FIRST'),)),
+    (NODEUTILS_OT_SWITCH_VIEWER_DOMAIN.bl_idname, 'NONE', None, 'Switch to Last', False, (('switch_mode', 'SWITCH_TO_LAST'),)),
+    (NODEUTILS_OT_SWITCH_VIEWER_DOMAIN.bl_idname, 'NONE', None, 'Cycle Up', False, (('switch_mode', 'CYCLE_UP'),)),
+    (NODEUTILS_OT_SWITCH_VIEWER_DOMAIN.bl_idname, 'NONE', None, 'Cycle Down', False, (('switch_mode', 'CYCLE_DOWN'),)),
+    (NODEUTILS_OT_SWITCH_VIEWER_DOMAIN_INVOKE_MENU.bl_idname, 'NONE', None, 'Invoke Pie Menu', False, None,),
+    (NODEUTILS_OT_BATCH_LABEL.bl_idname, 'NONE', 'Batch Operations', 'Set Labels', False, None,),
     (NODEUTILS_OT_BATCH_LABEL.bl_idname, 'NONE', 'Batch Operations', 'Set Labels', False, None,),
     (NODEUTILS_OT_SET_WIDTH.bl_idname, 'NONE', 'Batch Operations', '', False, None,),
     (NODEUTILS_OT_SET_COLOR.bl_idname, 'NONE', 'Batch Operations', 'Set Color', False, (('color_opmode', 'SET_COLOR'),),),

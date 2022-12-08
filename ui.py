@@ -11,6 +11,9 @@ from .operators import (
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
     NODEUTILS_OT_SWITCH_SELECT_TYPE,
+    NODEUTILS_OT_SWITCH_VIEWER_DOMAIN,
+    NODEUTILS_OT_PIE_MENU_SWITCH_VIEWER_DOMAIN,
+    NODEUTILS_MT_SWITCH_VIEWER_DOMAIN_OPTIONS,
     fetch_user_preferences
 )
 
@@ -78,6 +81,16 @@ class NODEUTILS_PT_main_panel(Panel):
         op_props = row.operator('nd_utils.toggle_unused_sockets', text='Outputs')
         op_props.sockets_to_hide = "OUTPUT"
 
+        if context.space_data.tree_type == "GeometryNodeTree":
+            layout.label(text="Switch Viewer Node Domains:")
+            row = layout.box().row(align=True)
+            switch_names = ('First', 'Last', 'Cycle Up', 'Cycle Down')
+            switch_icons = ('TRIA_UP_BAR', 'TRIA_DOWN_BAR', 'TRIA_UP', 'TRIA_DOWN')
+            switch_props = ('SWITCH_TO_FIRST', 'SWITCH_TO_LAST', 'CYCLE_UP', 'CYCLE_DOWN')
+            for name, icon, prop in zip(switch_names, switch_icons, switch_props):
+                op_props = row.operator('nd_utils.switch_viewer_domain', text=name, icon=icon)
+                op_props.switch_mode = prop
+        
         layout.label(text="Batch Operations:")
         spacing = 0.55
         col = layout.box().column(align=True)
@@ -93,6 +106,7 @@ class NODEUTILS_PT_main_panel(Panel):
         op_props.color_opmode = "CLEAR_COLOR"     
         col.separator(factor=spacing)
         col.operator('nd_utils.recenter_nodes', text='Center at Origin')
+        col.separator(factor=spacing)
 
         
 

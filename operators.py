@@ -1,3 +1,4 @@
+from operator import ge
 import bpy
 from bpy.types import Operator
 from bpy.props import EnumProperty, StringProperty, IntProperty
@@ -419,6 +420,142 @@ class NODEUTILS_OT_SWITCH_SELECT_TYPE(bpy.types.Operator, NodeUtilsBase):
         selection_enum.selection_mode = new_select_mode
         return {'FINISHED'}
 
+class NODEUTILS_OT_SWITCH_VIEWER_DOMAIN(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Switch Viewer Domain"
+    bl_idname = "nd_utils.switch_viewer_domain"
+    bl_description = "Updates the domain of Viewer Node in Geometry Nodes"
+    bl_options = {'REGISTER'}
+
+    switch_mode: EnumProperty(name='switch_mode', items=(
+        ('SWITCH_TO_FIRST', 'SWITCH_TO_FIRST', ''), 
+        ('SWITCH_TO_LAST', 'SWITCH_TO_LAST', ''), 
+        ('CYCLE_UP', 'CYCLE_UP', ''), 
+        ('CYCLE_DOWN', 'CYCLE_DOWN', ''),))
+
+    @staticmethod
+    def determine_source_geo(active_node):
+        default_domain_list = ('AUTO', 'POINT', 'EDGE', 'FACE', 'CORNER', 'CURVE', 'INSTANCE')
+
+        if active_node.bl_static_type != "VIEWER" or active_node.select == False:
+            return default_domain_list
+
+        geometry_socket = active_node.inputs[0]
+        if len(geometry_socket.links) == 0:
+            return default_domain_list
+        
+        source_geo = geometry_socket.links[0].from_socket.name
+
+        if source_geo == "Curve":
+            return ('AUTO', 'POINT', 'CURVE', 'EDGE', 'FACE', 'CORNER', 'INSTANCE')
+        elif source_geo == "Instances":
+            return ('AUTO', 'INSTANCE', 'POINT', 'EDGE', 'FACE', 'CORNER', 'CURVE')
+        else:
+            return default_domain_list
+        
+
+    def execute(self, context):
+        nodes = get_nodes(context)
+        active_node = context.active_node
+
+        domains = self.determine_source_geo(active_node)
+
+        for node in nodes:
+            if node.bl_static_type != "VIEWER":
+                continue
+
+            current_id = domains.index(node.domain)
+
+            if not self.switch_mode.startswith('CYCLE'):
+                if self.switch_mode == 'SWITCH_TO_FIRST':
+                    new_id = 0
+                elif self.switch_mode == 'SWITCH_TO_LAST':
+                    new_id = -1
+
+            if self.switch_mode == "CYCLE_UP":
+                new_id = max(current_id - 1, 0)
+            elif self.switch_mode == "CYCLE_DOWN":
+                new_id = min(current_id + 1, len(domains) - 1)
+            
+            node.domain = domains[new_id]
+                
+        return {'FINISHED'}
+
+class NODEUTILS_OT_PIE_MENU_SWITCH_VIEWER_DOMAIN(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Switch Viewer Domain (Pie Menu)"
+    bl_idname = "nd_utils.pie_menu_switch_viewer_domain"
+    bl_description = "Updates the domain of Viewer Node in Geometry Nodes"
+    bl_options = {'REGISTER'}
+
+    domain_type: EnumProperty(name='domains', items=(
+        ('AUTO', 'AUTO', ''), 
+        ('POINT', 'POINT', ''), 
+        ('EDGE', 'EDGE', ''), 
+        ('FACE', 'FACE', ''), 
+        ('CORNER', 'CORNER', ''), 
+        ('CURVE', 'CURVE', ''), 
+        ('INSTANCE', 'INSTANCE', ''), 
+        ))
+
+    def execute(self, context):
+        nodes = get_nodes(context)
+
+        for node in nodes:
+            if node.bl_static_type != "VIEWER":
+                continue
+            
+            node.domain = self.domain_type
+                
+        return {'FINISHED'}
+
+class NODEUTILS_OT_SWITCH_VIEWER_DOMAIN_INVOKE_MENU(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Switch Viewer Node Domain Options"
+    bl_idname = "nd_utils.switch_viewer_domain_invoke_menu"
+    bl_options = {'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        space = context.space_data
+        is_existing = space.node_tree is not None
+        is_node_editor = space.type == 'NODE_EDITOR'
+        is_valid = space.tree_type == "GeometryNodeTree"
+        return all((is_existing, is_node_editor, is_valid))
+
+    def execute(self, context):
+        bpy.ops.wm.call_menu_pie(name="ND_UTILS_MT_switch_viewer_domain_options")
+        return {'FINISHED'}
+        
+        
+
+class NODEUTILS_MT_SWITCH_VIEWER_DOMAIN_OPTIONS(bpy.types.Menu, NodeUtilsBase):
+    bl_label = "Switch Viewer Domain"
+    bl_idname = "ND_UTILS_MT_switch_viewer_domain_options"
+
+    domains = (
+        ('AUTO', "Auto", 'COLLAPSEMENU'), 
+        ('POINT', "Point", 'DECORATE'), 
+        ('EDGE', "Edge", 'MOD_EDGESPLIT'), 
+        ('FACE', "Face", 'MOD_SOLIDIFY'), 
+        ('CORNER', "Face Corner", 'DRIVER_ROTATIONAL_DIFFERENCE'), 
+        ('CURVE', "Spline", 'CURVE_DATA'), 
+        ('INSTANCE', "Instance", 'EMPTY_AXIS'),
+        )
+    
+    @classmethod
+    def poll(cls, context):
+        space = context.space_data
+        is_existing = space.node_tree is not None
+        is_node_editor = space.type == 'NODE_EDITOR'
+        is_valid = space.tree_type == "GeometryNodeTree"
+        return all((is_existing, is_node_editor, is_valid))
+        
+    def draw(self, context):
+        layout = self.layout
+        pie = layout.menu_pie()
+
+        for domain, label, icon in self.domains:
+            props = pie.operator("nd_utils.pie_menu_switch_viewer_domain", text=f"{label}", icon=icon)
+            props.domain_type = domain
+
 def refresh_ui(self, context):
     for region in context.area.regions:
         if region.type == "UI":
@@ -448,7 +585,11 @@ classes = (
     NODEUTILS_OT_LABEL_REROUTES,
     NODEUTILS_OT_RECENTER_NODES,
     NODEUTILS_OT_TOGGLE_UNUSED_SOCKETS,
-    NODEUTILS_OT_SWITCH_SELECT_TYPE
+    NODEUTILS_OT_SWITCH_SELECT_TYPE,
+    NODEUTILS_OT_SWITCH_VIEWER_DOMAIN,
+    NODEUTILS_OT_PIE_MENU_SWITCH_VIEWER_DOMAIN,
+    NODEUTILS_MT_SWITCH_VIEWER_DOMAIN_OPTIONS,
+    NODEUTILS_OT_SWITCH_VIEWER_DOMAIN_INVOKE_MENU,
 )
 
 def register():

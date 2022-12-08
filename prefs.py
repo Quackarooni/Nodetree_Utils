@@ -63,7 +63,7 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
             for km_con in kc.keymaps:
                 if km_add.name == km_con.name:
                     km = km_con
-                    break
+                    break    
 
             for kmi_con in km.keymap_items:
                 if kmi_add.idname == kmi_con.idname:
@@ -73,8 +73,6 @@ class NodetreeUtilsPreferences(bpy.types.AddonPreferences):
                         if (label not in label_list):
                             label_list.append(label)
                         labels[kmi_con.name] = label_list
-
-
 
         get_kmi_l = sorted(set(get_kmi_l), key=get_kmi_l.index)
         old_category = ''
