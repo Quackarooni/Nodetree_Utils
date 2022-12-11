@@ -518,7 +518,11 @@ class NODEUTILS_OT_SWITCH_VIEWER_DOMAIN_INVOKE_MENU(bpy.types.Operator, NodeUtil
         is_existing = space.node_tree is not None
         is_node_editor = space.type == 'NODE_EDITOR'
         is_valid = space.tree_type == "GeometryNodeTree"
-        return all((is_existing, is_node_editor, is_valid))
+
+        nodes = get_nodes(context)
+        does_viewer_exist = any(node.bl_static_type == "VIEWER" for node in nodes)
+
+        return all((is_existing, is_node_editor, is_valid, does_viewer_exist))
 
     def execute(self, context):
         bpy.ops.wm.call_menu_pie(name="ND_UTILS_MT_switch_viewer_domain_options")
