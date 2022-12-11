@@ -1,4 +1,5 @@
 from rna_keymap_ui import _indented_layout, draw_km
+import bpy
 
 def draw_kmi(display_keymaps, kc, km, kmi, layout, level, label=''):
     map_type = kmi.map_type
@@ -105,3 +106,56 @@ def draw_kmi(display_keymaps, kc, km, kmi, layout, level, label=''):
                 draw_km(display_keymaps, kc, kmm, None, layout, level + 1)
                 layout.context_pointer_set("keymap", km)
 
+def draw_keyboard_shorcuts(layout, spacing, keymaps, display):
+    col = layout.box().column()
+    col.label(text="Keymap List:", icon="KEYINGSET")
+
+    kc = bpy.context.window_manager.keyconfigs.user
+    get_kmi_l = []
+    labels = {}
+    for km_add, kmi_add, label in reversed(keymaps):
+        for km_con in kc.keymaps:
+            if km_add.name == km_con.name:
+                km = km_con
+                break    
+
+        for kmi_con in km.keymap_items:
+            if kmi_add.idname == kmi_con.idname:
+                if kmi_add.name == kmi_con.name:
+                    get_kmi_l.append((km, kmi_con))
+                    label_list = labels.get(kmi_con.name, [])
+                    if (label not in label_list):
+                        label_list.append(label)
+                    labels[kmi_con.name] = label_list
+
+    get_kmi_l = sorted(set(get_kmi_l), key=get_kmi_l.index)
+    old_category = ''
+    old_label = ''
+    is_first_entry = True
+    group_spacing = 0.35
+
+    for km, kmi in get_kmi_l:
+        curr_category = display[kmi.name]
+        if curr_category is None:
+            curr_category = kmi.name
+
+        if not curr_category == old_category:
+            if not is_first_entry:
+                col.separator(factor=group_spacing)
+            col.label(text=str(curr_category), icon="DOT")
+
+        col.context_pointer_set("keymap", km)
+        
+        #rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+        label_list = labels[kmi.name]
+        if len(label_list) == 1:
+            label = label_list[0]
+        else:
+            label = label_list.pop(0)
+
+        if old_label != label:
+            draw_kmi([], kc, km, kmi, col, 0, label=label)
+            col.separator(factor=spacing)
+        old_category = curr_category
+        old_label = label
+        is_first_entry = False
