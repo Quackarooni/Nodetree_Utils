@@ -496,6 +496,23 @@ class NODEUTILS_OT_PIE_MENU_SWITCH_VIEWER_DOMAIN(bpy.types.Operator, NodeUtilsBa
         ('INSTANCE', 'INSTANCE', ''), 
         ))
 
+    domain_type: EnumProperty(name='domains', items=(
+        ('AUTO', 'AUTO', ''), 
+        ('POINT', 'POINT', ''), 
+        ('EDGE', 'EDGE', ''), 
+        ('FACE', 'FACE', ''), 
+        ('CORNER', 'CORNER', ''), 
+        ('CURVE', 'CURVE', ''), 
+        ('INSTANCE', 'INSTANCE', ''), 
+        ))
+
+    geometry_type: EnumProperty(name='geometry_type', items=(
+        ('MESH', 'MESH', ''), 
+        ('CURVE', 'CURVE', ''), 
+        ('POINTCLOUD', 'POINTCLOUD', ''), 
+        ('INSTANCES', 'INSTANCES', ''), 
+        ))
+
     def execute(self, context):
         nodes = get_nodes(context)
 
@@ -504,6 +521,13 @@ class NODEUTILS_OT_PIE_MENU_SWITCH_VIEWER_DOMAIN(bpy.types.Operator, NodeUtilsBa
                 continue
             
             node.domain = self.domain_type
+        
+        area = None
+        for area in bpy.context.screen.areas:
+            if area.type == 'SPREADSHEET':
+                active_area = area.spaces.active
+                active_area.geometry_component_type = self.geometry_type
+                active_area.attribute_domain = self.domain_type
                 
         return {'FINISHED'}
 
@@ -535,13 +559,15 @@ class NODEUTILS_MT_SWITCH_VIEWER_DOMAIN_OPTIONS(bpy.types.Menu, NodeUtilsBase):
     bl_idname = "ND_UTILS_MT_switch_viewer_domain_options"
 
     domains = (
-        ('AUTO', "Auto", 'COLLAPSEMENU'), 
-        ('POINT', "Point", 'DECORATE'), 
-        ('EDGE', "Edge", 'MOD_EDGESPLIT'), 
-        ('FACE', "Face", 'MOD_SOLIDIFY'), 
-        ('CORNER', "Face Corner", 'DRIVER_ROTATIONAL_DIFFERENCE'), 
-        ('CURVE', "Spline", 'CURVE_DATA'), 
-        ('INSTANCE', "Instance", 'EMPTY_AXIS'),
+        #('AUTO', "Auto", 'COLLAPSEMENU'), 
+        ('POINT', 'MESH', "Vertex", 'VERTEXSEL'), 
+        ('EDGE', 'MESH', "Edge", 'MOD_EDGESPLIT'), 
+        ('FACE', 'MESH', "Face", 'MOD_SOLIDIFY'), 
+        ('CORNER', 'MESH', "Face Corner", 'DRIVER_ROTATIONAL_DIFFERENCE'), 
+        ('POINT', 'CURVE', "Control Point", 'CURVE_BEZCURVE'), 
+        ('CURVE', 'CURVE', "Spline", 'CURVE_DATA'), 
+        ('POINT', 'POINTCLOUD', "Point", 'PARTICLE_POINT'), 
+        ('INSTANCE', 'INSTANCES', "Instance", 'EMPTY_AXIS'),
         )
     
     @classmethod
@@ -556,9 +582,10 @@ class NODEUTILS_MT_SWITCH_VIEWER_DOMAIN_OPTIONS(bpy.types.Menu, NodeUtilsBase):
         layout = self.layout
         pie = layout.menu_pie()
 
-        for domain, label, icon in self.domains:
+        for domain, geo_type, label, icon in self.domains:
             props = pie.operator("nd_utils.pie_menu_switch_viewer_domain", text=f"{label}", icon=icon)
             props.domain_type = domain
+            props.geometry_type = geo_type
 
 def refresh_ui(self, context):
     for region in context.area.regions:
