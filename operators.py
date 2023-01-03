@@ -609,11 +609,21 @@ class NODEUTILS_OT_STRAIGHTEN_REROUTES(bpy.types.Operator, NodeUtilsBase):
         new_y_locations = []
 
         for node in valid_reroutes:
-            from_node = node.inputs[0].links[0].from_node
+            link = node.inputs[0].links[0]
+            from_node = link.from_node
+            from_socket = link.from_socket
+
             if from_node.bl_static_type == "REROUTE":
                 continue
 
-            socket_id = 2
+            for index, output in enumerate(from_node.outputs):
+                if output != from_socket:
+                    continue
+
+                socket_id = index
+                break
+
+
             old_x_locations.append(round(node.location.x, 2)) 
             old_y_locations.append(round(node.location.y, 2))
 
