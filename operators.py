@@ -613,34 +613,21 @@ class NODEUTILS_OT_STRAIGHTEN_REROUTES(bpy.types.Operator, NodeUtilsBase):
             from_node = link.from_node
             from_socket = link.from_socket
 
-            if from_node.bl_static_type == "REROUTE":
-                continue
-
             for index, output in enumerate(from_node.outputs):
-                if output != from_socket:
-                    continue
-
-                socket_id = index
-                break
-
-
-            old_x_locations.append(round(node.location.x, 2)) 
-            old_y_locations.append(round(node.location.y, 2))
+                if output == from_socket:
+                    socket_id = index
+                    break
 
             y_offset = (header_offset + first_socket_offset + socket_id*(socket_gaps))
-            new_x = from_node.location.x + from_node.width + x_offset
-            new_y = from_node.location.y - y_offset
+            old_y_locations.append(round(node.location.y, 2))
+            new_y_locations.append(round(from_node.location.y - y_offset, 2)) 
 
-            new_x_locations.append(round(new_x, 2)) 
-            new_y_locations.append(round(new_y, 2)) 
 
-        if (old_x_locations == new_x_locations) and (old_y_locations == new_y_locations):
+        if old_y_locations == new_y_locations:
             return {'CANCELLED'}
 
-        for node, x, y in zip(valid_reroutes, new_x_locations, new_y_locations):
-            node.location.x = x
+        for node, y in zip(valid_reroutes, new_y_locations):
             node.location.y = y
-                
         return {'FINISHED'}
 
 
