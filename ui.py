@@ -91,6 +91,11 @@ class NODEUTILS_PT_main_panel(Panel):
                 op_props = row.operator('nd_utils.switch_viewer_domain', text=name, icon=icon)
                 op_props.switch_mode = prop
         
+        layout.label(text="Straighten Reroutes:")
+        row = layout.box().row(align=True)
+        op_props = row.operator('nd_utils.straighten_reroutes', text='Straighten Reroutes')
+        #op_props.sockets_to_hide = "OUTPUT"
+
         layout.label(text="Batch Operations:")
         spacing = 0.55
         col = layout.box().column(align=True)
@@ -106,8 +111,6 @@ class NODEUTILS_PT_main_panel(Panel):
         op_props.color_opmode = "CLEAR_COLOR"     
         col.separator(factor=spacing)
         col.operator('nd_utils.recenter_nodes', text='Center at Origin')
-        col.separator(factor=spacing)
-        col.operator('nd_utils.straighten_reroutes', text='Straighten Reroutes')
         col.separator(factor=spacing)
 
         

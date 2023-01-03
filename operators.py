@@ -590,42 +590,90 @@ class NODEUTILS_MT_SWITCH_VIEWER_DOMAIN_OPTIONS(bpy.types.Menu, NodeUtilsBase):
 class NODEUTILS_OT_STRAIGHTEN_REROUTES(bpy.types.Operator, NodeUtilsBase):
     bl_label = "Straigthen Reroutes"
     bl_idname = "nd_utils.straighten_reroutes"
-    bl_description = "Straightens reroutes."
+    bl_description = "Aligns reroute with the node socket they're connected with."
+
+    #TODO - ADD BoolProperty to Select Reroutes after straigthening
+    #TODO - ADD EnumProperty to adjust whether reroute x_location is Relative or Absolute
+    #TODO - ADD Float Property to adjust how much is the x offset in Absolute Mode
 
     def execute(self, context):
         header_offset = 20
         first_socket_offset = 15
         socket_gaps = 22
-        x_offset = 100
 
         reroutes = tuple(node for node in get_nodes(context) 
             if node.bl_static_type == "REROUTE")
-        valid_reroutes = tuple(reroute for reroute in reroutes
-            if reroute.inputs[0].links[0].from_node.bl_static_type != "REROUTE")
 
-        old_x_locations = []
+        valid_input_reroutes = []
+        valid_output_reroutes = []
+
+        for reroute in reroutes:
+            input_link = reroute.inputs[0].links[0]
+            output_link = reroute.outputs[0].links[0]
+
+            #print(reroute.label, input_link.from_node.bl_static_type)
+            if input_link.from_node.bl_static_type != "REROUTE":
+                if input_link.from_socket.enabled:
+                    valid_input_reroutes.append(reroute)
+                    continue
+
+            elif output_link.to_node.bl_static_type != "REROUTE":
+                if output_link.to_socket.enabled:
+                    valid_output_reroutes.append(reroute)
+
+        #print(*(node.label for node in valid_input_reroutes))
+        #print(*(node.label for node in valid_output_reroutes))
+        #valid_reroutes = tuple(reroute for reroute in reroutes
+            #if reroute.inputs[0].links[0].from_node.bl_static_type != "REROUTE")
+
         old_y_locations = []
-        new_x_locations = []
         new_y_locations = []
 
-        for node in valid_reroutes:
+        for node in valid_input_reroutes:
             link = node.inputs[0].links[0]
             from_node = link.from_node
             from_socket = link.from_socket
 
-            for index, output in enumerate(from_node.outputs):
-                if output == from_socket:
-                    socket_id = index
+            socket_id = 0
+            for outp in from_node.outputs:
+                if outp == from_socket:
                     break
+                elif outp.enabled and not outp.hide:
+                    socket_id += 1
 
             y_offset = (header_offset + first_socket_offset + socket_id*(socket_gaps))
             old_y_locations.append(round(node.location.y, 2))
             new_y_locations.append(round(from_node.location.y - y_offset, 2)) 
 
+        #TODO FIX A LOT OF THIS, IT DOESN'T EVEN CONSIDER THE SIZES OF UNOCCUPIED INPUTS YET
+        for node in valid_output_reroutes:
+            link = node.outputs[0].links[0]
+            to_node = link.to_node
+            to_socket = link.to_socket
+
+            print(to_node.name, node.label)
+            output_count = len(tuple(outp for outp in to_node.outputs if outp.enabled and not outp.hide))
+            socket_id = max(output_count, 0)
+            for inp in to_node.inputs:
+                print(inp.name)
+                if inp == to_socket:
+                    break
+                elif inp.enabled and not inp.hide:
+                    socket_id += 1
+            print()
+            if output_count > 0:
+                adjust = 2.5
+            else:
+                adjust = 0
+
+            y_offset = (header_offset + first_socket_offset + socket_id*(socket_gaps))
+            old_y_locations.append(round(node.location.y, 2))
+            new_y_locations.append(round(to_node.location.y - y_offset - adjust, 2)) 
 
         if old_y_locations == new_y_locations:
             return {'CANCELLED'}
 
+        valid_reroutes = valid_input_reroutes + valid_output_reroutes
         for node, y in zip(valid_reroutes, new_y_locations):
             node.location.y = y
         return {'FINISHED'}
