@@ -107,6 +107,8 @@ class NODEUTILS_PT_main_panel(Panel):
         col.separator(factor=spacing)
         col.operator('nd_utils.recenter_nodes', text='Center at Origin')
         col.separator(factor=spacing)
+        col.operator('nd_utils.straighten_reroutes', text='Straighten Reroutes')
+        col.separator(factor=spacing)
 
         
 

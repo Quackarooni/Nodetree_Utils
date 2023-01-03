@@ -587,6 +587,53 @@ class NODEUTILS_MT_SWITCH_VIEWER_DOMAIN_OPTIONS(bpy.types.Menu, NodeUtilsBase):
             props.domain_type = domain
             props.geometry_type = geo_type
 
+class NODEUTILS_OT_STRAIGHTEN_REROUTES(bpy.types.Operator, NodeUtilsBase):
+    bl_label = "Straigthen Reroutes"
+    bl_idname = "nd_utils.straighten_reroutes"
+    bl_description = "Straightens reroutes."
+
+    def execute(self, context):
+        header_offset = 20
+        first_socket_offset = 15
+        socket_gaps = 22
+        x_offset = 100
+
+        reroutes = tuple(node for node in get_nodes(context) 
+            if node.bl_static_type == "REROUTE")
+        valid_reroutes = tuple(reroute for reroute in reroutes
+            if reroute.inputs[0].links[0].from_node.bl_static_type != "REROUTE")
+
+        old_x_locations = []
+        old_y_locations = []
+        new_x_locations = []
+        new_y_locations = []
+
+        for node in valid_reroutes:
+            from_node = node.inputs[0].links[0].from_node
+            if from_node.bl_static_type == "REROUTE":
+                continue
+
+            socket_id = 2
+            old_x_locations.append(round(node.location.x, 2)) 
+            old_y_locations.append(round(node.location.y, 2))
+
+            y_offset = (header_offset + first_socket_offset + socket_id*(socket_gaps))
+            new_x = from_node.location.x + from_node.width + x_offset
+            new_y = from_node.location.y - y_offset
+
+            new_x_locations.append(round(new_x, 2)) 
+            new_y_locations.append(round(new_y, 2)) 
+
+        if (old_x_locations == new_x_locations) and (old_y_locations == new_y_locations):
+            return {'CANCELLED'}
+
+        for node, x, y in zip(valid_reroutes, new_x_locations, new_y_locations):
+            node.location.x = x
+            node.location.y = y
+                
+        return {'FINISHED'}
+
+
 def refresh_ui(self, context):
     for region in context.area.regions:
         if region.type == "UI":
@@ -621,6 +668,7 @@ classes = (
     NODEUTILS_OT_PIE_MENU_SWITCH_VIEWER_DOMAIN,
     NODEUTILS_MT_SWITCH_VIEWER_DOMAIN_OPTIONS,
     NODEUTILS_OT_SWITCH_VIEWER_DOMAIN_INVOKE_MENU,
+    NODEUTILS_OT_STRAIGHTEN_REROUTES,
 )
 
 def register():
